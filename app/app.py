@@ -865,190 +865,187 @@ class CustomerClassificationApp:
         """Render the model training page with algorithm metrics"""
         st.markdown('<h1 class="main-header">🚀 Model Training</h1>', unsafe_allow_html=True)
         
-        st.markdown('<h2 class="sub-header">🤖 Trained Classification Algorithms</h2>', unsafe_allow_html=True)
+        st.markdown('<h2 class="sub-header">Train Classification Models</h2>', unsafe_allow_html=True)
         
-        # Professional description
-        st.markdown("""
-        <div style="background-color: #f8f9fa; border-left: 4px solid #007bff; 
-                    padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
-            <h3 style="color: #007bff; margin-bottom: 1rem;">📊 Model Training Overview</h3>
-            <p style="line-height: 1.6;">
-                Our customer classification system employs three advanced machine learning algorithms, 
-                each trained on comprehensive customer transaction data to identify patterns and predict 
-                customer value segments. The models have been optimized using rigorous cross-validation 
-                techniques and hyperparameter tuning to ensure optimal performance.
-            </p>
-            <p style="line-height: 1.6;">
-                Each algorithm brings unique strengths to the classification task: KNN excels at 
-                capturing local patterns, Decision Trees provide interpretable decision boundaries, 
-                and Random Forest delivers robust ensemble performance through feature bagging.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+        # Training button
+        if st.button("🚀 Train Models", type="primary", use_container_width=True):
+            with st.spinner("Training models... This may take a few minutes."):
+                try:
+                    # Import and run the training pipeline
+                    import sys
+                    import os
+                    from pathlib import Path
+                    
+                    # Add src directory to path
+                    src_path = Path(__file__).parent.parent / "src"
+                    sys.path.append(str(src_path))
+                    
+                    # Import training module
+                    from train_model import ModelTrainer
+                    
+                    # Initialize trainer
+                    trainer = ModelTrainer()
+                    
+                    # Run training
+                    training_results = trainer.train_all_models()
+                    
+                    # Store results in session state
+                    st.session_state.training_results = training_results
+                    st.session_state.training_completed = True
+                    
+                    st.success("✅ Model training completed successfully!")
+                    
+                except Exception as e:
+                    st.error(f"❌ Error during training: {e}")
+                    st.session_state.training_completed = False
         
-        # Display model metrics
-        st.markdown('<h2 class="sub-header">📈 Algorithm Performance Metrics</h2>', unsafe_allow_html=True)
+        # Display results if training is completed
+        if st.session_state.get('training_completed', False):
+            results = st.session_state.get('training_results', {})
+            
+            if results:
+                st.markdown('<h2 class="sub-header">📊 Model Performance Results</h2>', unsafe_allow_html=True)
+                
+                # Create algorithm cards
+                algorithms = ['KNN', 'Decision Tree', 'Random Forest']
+                
+                for i, algorithm in enumerate(algorithms):
+                    if algorithm in results:
+                        metrics = results[algorithm]
+                        
+                        # Create a styled card for each algorithm
+                        st.markdown(f"""
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                    color: white; padding: 1.5rem; border-radius: 10px; 
+                                    margin-bottom: 1rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                            <h3 style="margin-bottom: 1rem;">🤖 {algorithm}</h3>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Display metrics in columns
+                        col1, col2, col3, col4 = st.columns(4)
+                        
+                        with col1:
+                            st.metric(
+                                label="📏 MAE", 
+                                value=f"{metrics.get('mae', 0):.4f}",
+                                delta=None
+                            )
+                        
+                        with col2:
+                            st.metric(
+                                label="📐 RMSE", 
+                                value=f"{metrics.get('rmse', 0):.4f}",
+                                delta=None
+                            )
+                        
+                        with col3:
+                            st.metric(
+                                label="📈 R²", 
+                                value=f"{metrics.get('r2', 0):.4f}",
+                                delta=f"{metrics.get('r2', 0):.4f}"
+                            )
+                        
+                        with col4:
+                            training_time = metrics.get('training_time', 0)
+                            st.metric(
+                                label="⏱️ Training Time", 
+                                value=f"{training_time:.2f}s",
+                                delta=None
+                            )
+                        
+                        st.markdown("---")
+                
+                # Find best model
+                best_model = max(results.keys(), key=lambda x: results[x].get('r2', 0))
+                best_r2 = results[best_model].get('r2', 0)
+                
+                # Display best model
+                st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
+                            color: white; padding: 1.5rem; border-radius: 10px; 
+                            text-align: center; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                    <h2>🏆 Best Model: {best_model}</h2>
+                    <p style="font-size: 1.2rem;">R² Score: {best_r2:.4f}</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Model comparison chart
+                st.markdown('<h2 class="sub-header">📈 Model Comparison</h2>', unsafe_allow_html=True)
+                
+                # Create comparison data
+                comparison_data = []
+                for algorithm, metrics in results.items():
+                    comparison_data.append({
+                        'Algorithm': algorithm,
+                        'MAE': metrics.get('mae', 0),
+                        'RMSE': metrics.get('rmse', 0),
+                        'R²': metrics.get('r2', 0),
+                        'Training Time (s)': metrics.get('training_time', 0)
+                    })
+                
+                comparison_df = pd.DataFrame(comparison_data)
+                
+                # Create comparison charts
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    fig_r2 = px.bar(
+                        comparison_df,
+                        x='Algorithm',
+                        y='R²',
+                        title="R² Score Comparison",
+                        color='R²',
+                        text_auto='.3f'
+                    )
+                    fig_r2.update_traces(textposition='outside')
+                    fig_r2.update_layout(showlegend=False)
+                    st.plotly_chart(fig_r2, use_container_width=True)
+                
+                with col2:
+                    fig_time = px.bar(
+                        comparison_df,
+                        x='Algorithm',
+                        y='Training Time (s)',
+                        title="Training Time Comparison",
+                        color='Training Time (s)',
+                        text_auto='.2f'
+                    )
+                    fig_time.update_traces(textposition='outside')
+                    fig_time.update_layout(showlegend=False)
+                    st.plotly_chart(fig_time, use_container_width=True)
+                
+                # Detailed comparison table
+                st.markdown('<h2 class="sub-header">📋 Detailed Metrics</h2>', unsafe_allow_html=True)
+                st.dataframe(
+                    comparison_df.style.background_gradient(subset=['R²'], cmap='RdYlGn')
+                                   .background_gradient(subset=['MAE', 'RMSE'], cmap='RdYlGn_r'),
+                    use_container_width=True
+                )
         
-        # Sample metrics data (you can replace with actual loaded metrics)
-        algorithms_data = {
-            'KNN': {
-                'mae': 0.2341,
-                'rmse': 0.3847,
-                'r2': 0.8523,
-                'training_time': 2.34,
-                'description': 'K-Nearest Neighbors classifier using distance-based voting'
-            },
-            'Decision Tree': {
-                'mae': 0.1987,
-                'rmse': 0.3456,
-                'r2': 0.8806,
-                'training_time': 1.89,
-                'description': 'Tree-based classifier with optimized depth and pruning'
-            },
-            'Random Forest': {
-                'mae': 0.1654,
-                'rmse': 0.2987,
-                'r2': 0.9103,
-                'training_time': 4.56,
-                'description': 'Ensemble method combining multiple decision trees'
-            }
-        }
-        
-        for algorithm, data in algorithms_data.items():
-            # Create algorithm card
-            st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                        color: white; padding: 1.5rem; border-radius: 10px; 
-                        margin-bottom: 1rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-                <h3 style="margin-bottom: 0.5rem;">🤖 {algorithm}</h3>
-                <p style="opacity: 0.9; font-size: 0.9rem; margin: 0;">{data['description']}</p>
+        else:
+            # Instructions before training
+            st.markdown("""
+            <div style="background-color: #e3f2fd; border-left: 4px solid #2196f3; 
+                        padding: 1rem; border-radius: 5px; margin: 1rem 0;">
+                <h3>📋 Training Instructions</h3>
+                <p>Click the "Train Models" button above to train multiple classification algorithms 
+                and compare their performance.</p>
+                <p><strong>Algorithms to be trained:</strong></p>
+                <ul>
+                    <li>🤖 <strong>KNN</strong> - K-Nearest Neighbors</li>
+                    <li>🌳 <strong>Decision Tree</strong> - Tree-based classifier</li>
+                    <li>🌲 <strong>Random Forest</strong> - Ensemble method</li>
+                </ul>
+                <p><strong>Metrics displayed:</strong></p>
+                <ul>
+                    <li>📏 <strong>MAE</strong> - Mean Absolute Error</li>
+                    <li>📐 <strong>RMSE</strong> - Root Mean Squared Error</li>
+                    <li>📈 <strong>R²</strong> - R-squared (Coefficient of Determination)</li>
+                    <li>⏱️ <strong>Training Time</strong> - Time taken to train the model</li>
+                </ul>
             </div>
             """, unsafe_allow_html=True)
-            
-            # Display metrics
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.metric(
-                    label="📏 MAE", 
-                    value=f"{data['mae']:.4f}",
-                    help="Mean Absolute Error - Lower is better"
-                )
-            
-            with col2:
-                st.metric(
-                    label="📐 RMSE", 
-                    value=f"{data['rmse']:.4f}",
-                    help="Root Mean Squared Error - Lower is better"
-                )
-            
-            with col3:
-                st.metric(
-                    label="📈 R²", 
-                    value=f"{data['r2']:.4f}",
-                    delta=f"{data['r2']:.4f}",
-                    help="R-squared - Higher is better (0 to 1)"
-                )
-            
-            with col4:
-                st.metric(
-                    label="⏱️ Training Time", 
-                    value=f"{data['training_time']:.2f}s",
-                    help="Time taken for model training"
-                )
-            
-            st.markdown("---")
-        
-        # Best model highlight
-        best_model = max(algorithms_data.keys(), key=lambda x: algorithms_data[x]['r2'])
-        best_data = algorithms_data[best_model]
-        
-        st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
-                    color: white; padding: 2rem; border-radius: 10px; 
-                    text-align: center; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); margin-bottom: 2rem;">
-            <h2 style="margin-bottom: 1rem;">🏆 Best Performing Model: {best_model}</h2>
-            <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">R² Score: {best_data['r2']:.4f}</p>
-            <p style="opacity: 0.9; font-size: 0.9rem;">Selected as the primary model for customer classification</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Model comparison charts
-        st.markdown('<h2 class="sub-header">� Performance Comparison</h2>', unsafe_allow_html=True)
-        
-        # Create comparison data
-        comparison_data = []
-        for algorithm, data in algorithms_data.items():
-            comparison_data.append({
-                'Algorithm': algorithm,
-                'MAE': data['mae'],
-                'RMSE': data['rmse'],
-                'R²': data['r2'],
-                'Training Time (s)': data['training_time']
-            })
-        
-        comparison_df = pd.DataFrame(comparison_data)
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            fig_r2 = px.bar(
-                comparison_df,
-                x='Algorithm',
-                y='R²',
-                title="R² Score Comparison",
-                color='R²',
-                text_auto='.3f',
-                color_continuous_scale='Viridis'
-            )
-            fig_r2.update_traces(textposition='outside')
-            fig_r2.update_layout(showlegend=False)
-            st.plotly_chart(fig_r2, use_container_width=True)
-        
-        with col2:
-            fig_time = px.bar(
-                comparison_df,
-                x='Algorithm',
-                y='Training Time (s)',
-                title="Training Time Comparison",
-                color='Training Time (s)',
-                text_auto='.2f',
-                color_continuous_scale='Plasma'
-            )
-            fig_time.update_traces(textposition='outside')
-            fig_time.update_layout(showlegend=False)
-            st.plotly_chart(fig_time, use_container_width=True)
-        
-        # Detailed metrics table
-        st.markdown('<h2 class="sub-header">📋 Detailed Performance Metrics</h2>', unsafe_allow_html=True)
-        
-        styled_df = comparison_df.style.background_gradient(subset=['R²'], cmap='RdYlGn')\
-                                   .background_gradient(subset=['MAE', 'RMSE'], cmap='RdYlGn_r')\
-                                   .format({
-                                       'MAE': '{:.4f}',
-                                       'RMSE': '{:.4f}',
-                                       'R²': '{:.4f}',
-                                       'Training Time (s)': '{:.2f}'
-                                   })
-        
-        st.dataframe(styled_df, use_container_width=True)
-        
-        # Technical details section
-        st.markdown('<h2 class="sub-header">🔧 Technical Implementation Details</h2>', unsafe_allow_html=True)
-        
-        st.markdown("""
-        <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; 
-                    padding: 1.5rem; border-radius: 8px;">
-            <h4 style="color: #856404; margin-bottom: 1rem;">Training Pipeline</h4>
-            <ul style="line-height: 1.6; color: #856404;">
-                <li><strong>Data Preprocessing:</strong> Feature scaling, encoding, and missing value imputation</li>
-                <li><strong>Feature Engineering:</strong> Creation of customer behavior metrics and temporal features</li>
-                <li><strong>Cross-Validation:</strong> 5-fold stratified cross-validation for robust evaluation</li>
-                <li><strong>Hyperparameter Tuning:</strong> Grid search with custom scoring metrics</li>
-                <li><strong>Model Selection:</strong> Based on R² score, computational efficiency, and interpretability</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
     
     def run(self):
         """Main application runner"""

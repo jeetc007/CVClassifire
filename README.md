@@ -12,7 +12,11 @@ This project demonstrates a complete ML pipeline with:
 - **Modern UI**: Interactive Streamlit dashboard with multiple pages
 - **Customer Segmentation**: Classifies customers into Low, Medium, and High Value segments
 
-## 📁 Project Structure
+## � Live Demo
+
+**🌐 [Deployed on Streamlit Cloud](https://your-app-name.streamlit.app)**
+
+## �📁 Project Structure
 
 ```
 project_name/
