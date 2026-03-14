@@ -1,0 +1,16 @@
+DATA CLEANING AND QUALITY REPORT
+==================================================
+Original dataset: 1,067,371 rows
+Cleaned dataset: 778,649 rows
+Data retention: 73.0%
+Unique customers: 4,148
+
+Customer Segments:
+  Low Value: 3,002 (72.4%)
+  Medium Value: 1,146 (27.6%)
+
+Key Metrics:
+  Average total amount: $720.16
+  Average transaction count: 42.4
+  Average unique products: 36.3
+  Average customer tenure: 174.4 days
